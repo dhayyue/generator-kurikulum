@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator LKPD - Kurikulum Merdeka</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="script.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="lkpdApp()">
+
+    <!-- Top Navbar -->
+    <header class="bg-cyan-700 text-white shadow px-6 py-4 flex justify-between items-center">
+        <div class="font-bold text-lg">Pusat Generator | <span class="font-normal text-sm">LKPD Generator</span></div>
+        <div class="space-x-2">
+            <a href="modul.html" class="hover:bg-cyan-600 px-3 py-1.5 rounded text-xs transition">Modul Ajar</a>
+            <a href="lkpd.html" class="bg-cyan-800 px-3 py-1.5 rounded text-xs font-semibold shadow">LKPD</a>
+            <a href="materi.html" class="hover:bg-cyan-600 px-3 py-1.5 rounded text-xs transition">Materi Ajar</a>
+            <a href="asesmen.html" class="hover:bg-cyan-600 px-3 py-1.5 rounded text-xs transition">Asesmen</a>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
+        
+        <!-- Kolom Kiri: Form Input Lengkap -->
+        <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+            <div class="bg-cyan-50 p-3 rounded-lg border border-cyan-100">
+                <label class="block text-xs font-bold text-cyan-900 mb-1">Gemini API Key</label>
+                <input type="password" x-model="apiKey" placeholder="Masukkan API Key..." class="w-full border border-cyan-300 rounded p-2 text-xs bg-white outline-none">
+            </div>
+
+            <!-- 1. Informasi Umum -->
+            <div>
+                <h2 class="font-bold text-xs text-cyan-700 mb-3 tracking-wide">1. INFORMASI UMUM</h2>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="font-semibold text-slate-600 block mb-1">JENIS KURIKULUM</label>
+                        <div class="border border-cyan-600 bg-cyan-50 text-cyan-700 font-medium text-center py-2 rounded">Kurikulum Merdeka</div>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-600">NAMA SEKOLAH</label>
+                        <input type="text" x-model="form.sekolah" class="w-full border rounded p-2 mt-1">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="font-semibold text-slate-600">NAMA KEPALA SEKOLAH</label><input type="text" x-model="form.kepala" class="w-full border rounded p-2 mt-1"></div>
+                        <div><label class="font-semibold text-slate-600">NIP KEPALA SEKOLAH</label><input type="text" x-model="form.nipKepala" class="w-full border rounded p-2 mt-1"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="font-semibold text-slate-600">NAMA GURU PENGAMPU</label><input type="text" x-model="form.guru" class="w-full border rounded p-2 mt-1"></div>
+                        <div><label class="font-semibold text-slate-600">NIP GURU</label><input type="text" x-model="form.nipGuru" class="w-full border rounded p-2 mt-1"></div>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-600">MATA PELAJARAN</label>
+                        <input type="text" x-model="form.mapel" class="w-full border rounded p-2 mt-1">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="font-semibold text-slate-600">KELAS</label><input type="text" x-model="form.kelas" class="w-full border rounded p-2 mt-1"></div>
+                        <div><label class="font-semibold text-slate-600">FASE</label><input type="text" x-model="form.fase" class="w-full border rounded p-2 mt-1"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="font-semibold text-slate-600">SEMESTER</label><input type="text" x-model="form.semester" class="w-full border rounded p-2 mt-1"></div>
+                        <div><label class="font-semibold text-slate-600">TAHUN PELAJARAN</label><input type="text" x-model="form.tahun" class="w-full border rounded p-2 mt-1"></div>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-600">ALOKASI WAKTU</label>
+                        <input type="text" x-model="form.alokasi" class="w-full border rounded p-2 mt-1">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="font-semibold text-slate-600">KOTA</label><input type="text" x-model="form.kota" class="w-full border rounded p-2 mt-1"></div>
+                        <div><label class="font-semibold text-slate-600">TANGGAL PEMBUATAN</label><input type="text" x-model="form.tanggal" class="w-full border rounded p-2 mt-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Konten LKPD -->
+            <div>
+                <h2 class="font-bold text-xs text-cyan-700 mb-3 tracking-wide border-t pt-4">2. KONTEN LKPD</h2>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="font-semibold text-slate-600">MATERI POKOK</label>
+                        <input type="text" x-model="form.materi" class="w-full border rounded p-2 mt-1">
+                    </div>
+
+                    <!-- Dropdown Model Pembelajaran -->
+                    <div>
+                        <label class="font-semibold text-slate-600">MODEL PEMBELAJARAN</label>
+                        <select x-model="form.model" class="w-full border rounded p-2 mt-1 bg-white">
+                            <option value="Problem Based Learning">Problem Based Learning</option>
+                            <option value="Project Based Learning">Project Based Learning</option>
+                            <option value="Discovery Learning">Discovery Learning</option>
+                            <option value="Inquiry Learning">Inquiry Learning</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-600">TUJUAN PEMBELAJARAN</label>
+                        <textarea x-model="form.tujuan" rows="3" class="w-full border rounded p-2 mt-1"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <button @click="generateLkpd" :disabled="loading" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2.5 rounded text-sm transition shadow">
+                <span x-show="!loading">Buat LKPD (AI)</span>
+                <span x-show="loading">Sedang Menyusun LKPD...</span>
+            </button>
+        </div>
+
+        <!-- Kolom Kanan: Preview Hasil -->
+        <div class="lg:col-span-7 bg-white p-8 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between min-h-[700px]">
+            <div>
+                <div class="flex justify-between items-center border-b pb-4 mb-6">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pratinjau Dokumen LKPD</span>
+                    <button @click="printDoc" class="bg-slate-800 text-white px-3 py-1.5 rounded text-xs shadow hover:bg-slate-900 transition">Cetak / PDF</button>
+                </div>
+                <div id="previewArea" class="text-xs leading-relaxed space-y-4">
+                    <template x-if="!resultHTML">
+                        <div class="text-center text-slate-400 py-48">
+                            <p class="text-base font-medium">LKPD belum dibuat.</p>
+                            <p class="text-xs mt-1">Isi formulir di sebelah kiri dan klik tombol "Buat LKPD (AI)".</p>
+                        </div>
+                    </template>
+                    <div x-show="resultHTML" x-html="resultHTML"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Khusus Halaman LKPD -->
+    <script>
+        function lkpdApp() {
+            return {
+                apiKey: localStorage.getItem('gemini_api_key') || '',
+                loading: false,
+                resultHTML: '',
+                form: {
+                    sekolah: 'SD Negeri 1 Cerdas Berkarakter',
+                    kepala: 'Dr. H. Ahmad Dahlan, M.Pd.',
+                    nipKepala: '19700101 199503 1 001',
+                    guru: 'Budi Santoso, S.Pd.',
+                    nipGuru: '19850520 201001 1 005',
+                    mapel: 'Ilmu Pengetahuan Alam',
+                    kelas: '4',
+                    fase: 'B',
+                    semester: '1 (Ganjil)',
+                    tahun: '2024/2025',
+                    alokasi: '2 x 35 Menit',
+                    kota: 'Jakarta',
+                    tanggal: '27 September 2026',
+                    materi: 'Bagian Tubuh Tumbuhan',
+                    model: 'Problem Based Learning',
+                    tujuan: 'Peserta didik dapat mengidentifikasi bagian bagian tubuh tumbuhan dan fungsinya dengan benar.'
+                },
+                init() {
+                    this.$watch('apiKey', val => localStorage.setItem('gemini_api_key', val));
+                },
+                async generateLkpd() {
+                    if (!this.apiKey) {
+                        alert('Silakan masukkan Gemini API Key terlebih dahulu di kolom atas!');
+                        return;
+                    }
+                    this.loading = true;
+                    this.resultHTML = '';
+
+                    let prompt = `Buatkan dokumen Lembar Kerja Peserta Didik (LKPD) Kurikulum Merdeka yang interaktif, lengkap, dan profesional menggunakan format HTML bersih (menggunakan tag h3, h4, p, ul, li, table). 
+                    Data Identitas:
+                    - Kurikulum: Kurikulum Merdeka
+                    - Sekolah: ${this.form.sekolah}
+                    - Kepala Sekolah: ${this.form.kepala} (NIP: ${this.form.nipKepala})
+                    - Guru Pengampu: ${this.form.guru} (NIP: ${this.form.nipGuru})
+                    - Mata Pelajaran: ${this.form.mapel}
+                    - Kelas / Fase: Kelas ${this.form.kelas} / Fase ${this.form.fase}
+                    - Semester / Tahun: ${this.form.semester} / ${this.form.tahun}
+                    - Alokasi Waktu: ${this.form.alokasi}
+                    - Tempat / Tanggal: ${this.form.kota}, ${this.form.tanggal}
+                    - Materi Pokok: ${this.form.materi}
+                    - Model Pembelajaran: ${this.form.model}
+                    - Tujuan Pembelajaran: ${this.form.tujuan}
+                    
+                    Struktur dokumen LKPD harus mencakup:
+                    1. Identitas LKPD (Judul, Nama Siswa, Kelas)
+                    2. Petunjuk Belajar / Pengerjaan
+                    3. Tujuan Pembelajaran
+                    4. Alat dan Bahan (jika ada)
+                    5. Langkah-langkah Kegiatan / Eksplorasi berdasarkan model ${this.form.model}
+                    6. Kolom Tugas / Pertanyaan Diskusi dan Lembar Jawab siswa.`;
+
+                    try {
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        });
+                        const data = await res.json();
+                        if (data.candidates && data.candidates[0].content) {
+                            let text = data.candidates[0].content.parts[0].text;
+                            this.resultHTML = text.replace(/```html/g, '').replace(/```/g, '');
+                        } else {
+                            alert('Gagal memproses AI. Periksa kembali API Key Anda.');
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        alert('Terjadi kesalahan koneksi.');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                printDoc() {
+                    const content = document.getElementById('previewArea').innerHTML;
+                    const original = document.body.innerHTML;
+                    document.body.innerHTML = content;
+                    window.print();
+                    document.body.innerHTML = original;
+                    window.location.reload();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
