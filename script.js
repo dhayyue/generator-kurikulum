@@ -43,12 +43,15 @@ function generatorApp() {
             Berikan isi konten pembelajaran yang mendalam dan sesuai standar perangkat ajar kurikulum merdeka.`;
 
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(this.apiKey.trim())}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
                 const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error?.message || `Gemini API gagal (${res.status})`);
+                }
                 if (data.candidates && data.candidates[0].content) {
                     let text = data.candidates[0].content.parts[0].text;
                     this.resultHTML = text.replace(/```html/g, '').replace(/```/g, '');
@@ -57,7 +60,7 @@ function generatorApp() {
                 }
             } catch (e) {
                 console.error(e);
-                alert('Terjadi kesalahan koneksi.');
+                alert(`Gagal membuat dokumen: ${e.message}`);
             } finally {
                 this.loading = false;
             }
