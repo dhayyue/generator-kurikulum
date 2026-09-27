@@ -194,21 +194,9 @@
                     6. Kolom Tugas / Pertanyaan Diskusi dan Lembar Jawab siswa.`;
 
                     try {
-                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(this.apiKey.trim())}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                        });
-                        const data = await res.json();
-                        if (!res.ok) {
-                            throw new Error(data.error?.message || `Gemini API gagal (${res.status})`);
-                        }
-                        if (data.candidates && data.candidates[0].content) {
-                            let text = data.candidates[0].content.parts[0].text;
-                            this.resultHTML = text.replace(/```html/g, '').replace(/```/g, '');
-                        } else {
-                            alert('Gagal memproses AI. Periksa kembali API Key Anda.');
-                        }
+                        const result = await generateWithRetry(prompt, this.apiKey, buildFallbackDocument('Lembar Kerja Peserta Didik (LKPD)', this.form, 'Tambahkan alat, bahan, pertanyaan, dan lembar jawaban sesuai kegiatan.'));
+                        this.resultHTML = result.html.replace(/```html/g, '').replace(/```/g, '');
+                        if (result.usedFallback) alert('Gemini sedang sibuk. Template cadangan LKPD berhasil digunakan.');
                     } catch (e) {
                         console.error(e);
                         alert(`Gagal membuat LKPD: ${e.message}`);

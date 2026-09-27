@@ -1,3 +1,72 @@
+const GEMINI_MODEL = 'gemini-3.8-flash';
+
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    }[character]));
+}
+
+function buildFallbackDocument(title, form, details) {
+    const selectedDimensi = form.selectedDimensi?.join(', ') || 'Belum ditentukan';
+    return `<h2>${escapeHTML(title)}</h2>
+        <p><strong>Dokumen dasar berhasil dibuat tanpa AI.</strong> Anda dapat mengedit atau melengkapinya sebelum dicetak.</p>
+        <h3>Identitas Pembelajaran</h3>
+        <table><tr><th>Sekolah</th><td>${escapeHTML(form.sekolah)}</td></tr>
+        <tr><th>Guru</th><td>${escapeHTML(form.guru)} (${escapeHTML(form.nipGuru)})</td></tr>
+        <tr><th>Mata Pelajaran</th><td>${escapeHTML(form.mapel)}</td></tr>
+        <tr><th>Kelas / Fase</th><td>${escapeHTML(form.kelas)} / ${escapeHTML(form.fase)}</td></tr>
+        <tr><th>Semester / Tahun</th><td>${escapeHTML(form.semester)} / ${escapeHTML(form.tahun)}</td></tr>
+        <tr><th>Alokasi Waktu</th><td>${escapeHTML(form.alokasi)}</td></tr>
+        <tr><th>Materi</th><td>${escapeHTML(form.materi)}</td></tr>
+        <tr><th>Model Pembelajaran</th><td>${escapeHTML(form.model)}</td></tr>
+        <tr><th>Dimensi Profil Lulusan</th><td>${escapeHTML(selectedDimensi)}</td></tr></table>
+        <h3>Tujuan Pembelajaran</h3><p>${escapeHTML(form.tujuan)}</p>
+        <h3>Rancangan Kegiatan</h3>
+        <ol><li>Pendahuluan: apersepsi, motivasi, dan penyampaian tujuan.</li>
+        <li>Kegiatan inti: eksplorasi materi, diskusi, praktik, dan presentasi.</li>
+        <li>Penutup: refleksi, umpan balik, dan tindak lanjut.</li></ol>
+        <h3>Catatan Pengembangan</h3><p>${escapeHTML(details)}</p>`;
+}
+
+async function generateWithRetry(prompt, apiKey, fallbackHTML) {
+    const maxAttempts = 3;
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey.trim())}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            const data = await response.json();
+
+            if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                return { html: data.candidates[0].content.parts[0].text, usedFallback: false };
+            }
+
+            const message = data.error?.message || `Gemini API gagal (${response.status})`;
+            lastError = new Error(message);
+            const temporaryFailure = [429, 500, 502, 503, 504].includes(response.status) || /high demand|temporar|overload/i.test(message);
+            if (!temporaryFailure) throw lastError;
+        } catch (error) {
+            lastError = error;
+            if (!/Failed to fetch|network|high demand|temporar|overload/i.test(error.message)) throw error;
+        }
+
+        if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        }
+    }
+
+    console.warn('Gemini tidak tersedia, memakai template cadangan:', lastError?.message);
+    return { html: fallbackHTML, usedFallback: true };
+}
+
 function generatorApp() {
     return {
         apiKey: localStorage.getItem('gemini_api_key') || '',
@@ -43,21 +112,9 @@ function generatorApp() {
             Berikan isi konten pembelajaran yang mendalam dan sesuai standar perangkat ajar kurikulum merdeka.`;
 
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(this.apiKey.trim())}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.error?.message || `Gemini API gagal (${res.status})`);
-                }
-                if (data.candidates && data.candidates[0].content) {
-                    let text = data.candidates[0].content.parts[0].text;
-                    this.resultHTML = text.replace(/```html/g, '').replace(/```/g, '');
-                } else {
-                    alert('Gagal memproses AI. Periksa kembali API Key Anda.');
-                }
+                const result = await generateWithRetry(prompt, this.apiKey, buildFallbackDocument('Dokumen Pembelajaran', this.form, `Jenis dokumen: ${type}`));
+                this.resultHTML = result.html.replace(/```html/g, '').replace(/```/g, '');
+                if (result.usedFallback) alert('Gemini sedang sibuk. Template cadangan berhasil digunakan.');
             } catch (e) {
                 console.error(e);
                 alert(`Gagal membuat dokumen: ${e.message}`);
