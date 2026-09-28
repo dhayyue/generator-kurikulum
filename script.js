@@ -1,4 +1,135 @@
 const GEMINI_MODEL = 'gemini-3.8-flash';
+const DOCUMENT_STYLES = `
+    body[x-data="modulApp()"], body[data-document="modul"] {
+        --document-accent: #4f46e5;
+        --document-surface: #eef2ff;
+        --document-heading: #312e81;
+    }
+    body[x-data="lkpdApp()"], body[data-document="lkpd"] {
+        --document-accent: #0891b2;
+        --document-surface: #ecfeff;
+        --document-heading: #155e75;
+    }
+    body[x-data="materiApp()"], body[data-document="materi"] {
+        --document-accent: #7c3aed;
+        --document-surface: #f5f3ff;
+        --document-heading: #5b21b6;
+    }
+    body[x-data="asesmenApp()"], body[data-document="asesmen"] {
+        --document-accent: #dc2626;
+        --document-surface: #fef2f2;
+        --document-heading: #991b1b;
+    }
+    #previewArea, .generated-document {
+        color: #1f2937;
+        font-family: Arial, sans-serif;
+        font-size: 10pt;
+        line-height: 1.5;
+    }
+    #previewArea h1, #previewArea h2, .generated-document h1, .generated-document h2 {
+        color: #111827;
+        font-size: 15pt;
+        font-weight: 700;
+        margin: 8pt 0;
+        text-align: center;
+    }
+    #previewArea h3, .generated-document h3 {
+        background: var(--document-surface, #eff6ff);
+        border-left: 3px solid var(--document-accent, #2563eb);
+        color: var(--document-heading, #1e3a8a);
+        font-size: 11pt;
+        font-weight: 700;
+        margin: 12pt 0 6pt;
+        padding: 5pt 8pt;
+    }
+    #previewArea h4, .generated-document h4 {
+        color: var(--document-accent, #1d4ed8);
+        font-size: 10pt;
+        font-weight: 700;
+        margin: 8pt 0 4pt;
+    }
+    #previewArea p, .generated-document p {
+        margin: 4pt 0;
+        text-align: justify;
+    }
+    #previewArea table, .generated-document table {
+        border-collapse: collapse;
+        margin: 8pt 0;
+        page-break-inside: avoid;
+        width: 100%;
+    }
+    #previewArea th, #previewArea td, .generated-document th, .generated-document td {
+        border: 1px solid #94a3b8;
+        padding: 5pt;
+        text-align: left;
+        vertical-align: top;
+    }
+    #previewArea th, .generated-document th {
+        background: var(--document-surface, #eaf2ff);
+        color: var(--document-heading, #1e3a8a);
+        font-weight: 700;
+    }
+    #previewArea li, .generated-document li {
+        margin: 3pt 0;
+    }
+    #previewArea .document-signatures, .generated-document .document-signatures {
+        break-inside: avoid;
+        display: grid;
+        font-size: 9pt;
+        gap: 28pt;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 28pt 0 8pt;
+        page-break-inside: avoid;
+        text-align: center;
+    }
+    #previewArea .document-signatures p, .generated-document .document-signatures p {
+        margin: 2pt 0;
+        text-align: center;
+    }
+    #previewArea .signature-space, .generated-document .signature-space {
+        height: 48pt;
+    }
+    @page { size: A4; margin: 16mm 15mm; }
+    @media print {
+        body { background: #fff !important; }
+        .generated-document { font-size: 10pt; }
+    }
+`;
+
+const documentStyle = document.createElement('style');
+documentStyle.textContent = DOCUMENT_STYLES;
+document.head.appendChild(documentStyle);
+
+function ensureSignatureBlock(html, form) {
+    const parsedDocument = document.createElement('template');
+    parsedDocument.innerHTML = html;
+    const documentText = parsedDocument.content.textContent.toLowerCase();
+    const hasSignatureBlock = /mengetahui/.test(documentText)
+        && /kepala sekolah/.test(documentText)
+        && /(guru pengampu|guru mata pelajaran)/.test(documentText);
+
+    if (hasSignatureBlock) return html;
+
+    const principalNip = form.nipKepala ? `<p>NIP. ${escapeHTML(form.nipKepala)}</p>` : '';
+    const teacherNip = form.nipGuru ? `<p>NIP. ${escapeHTML(form.nipGuru)}</p>` : '';
+    return `${html}
+        <div class="document-signatures">
+            <div>
+                <p>Mengetahui,</p>
+                <p>Kepala Sekolah</p>
+                <div class="signature-space"></div>
+                <p><strong>${escapeHTML(form.kepala)}</strong></p>
+                ${principalNip}
+            </div>
+            <div>
+                <p>${escapeHTML(form.kota)}, ${escapeHTML(form.tanggal)}</p>
+                <p>Guru Pengampu</p>
+                <div class="signature-space"></div>
+                <p><strong>${escapeHTML(form.guru)}</strong></p>
+                ${teacherNip}
+            </div>
+        </div>`;
+}
 
 function escapeHTML(value) {
     return String(value ?? '').replace(/[&<>'"]/g, character => ({
@@ -8,6 +139,43 @@ function escapeHTML(value) {
         "'": '&#39;',
         '"': '&quot;'
     }[character]));
+}
+
+function downloadWordDocument(fileName) {
+    const preview = document.getElementById('previewArea');
+    const content = preview?.querySelector('[x-html]')?.innerHTML;
+    if (!content) return;
+    const documentType = fileName.toLowerCase().split('-')[0];
+
+    const documentHTML = `<!DOCTYPE html>
+        <html lang="id">
+        <head>
+            <meta charset="UTF-8">
+            <style>${DOCUMENT_STYLES}</style>
+        </head>
+        <body class="generated-document" data-document="${documentType}">${content}</body>
+        </html>`;
+    const file = new Blob(['\ufeff', documentHTML], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${fileName}.doc`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function printDocument() {
+    const content = document.getElementById('previewArea')?.querySelector('[x-html]')?.innerHTML;
+    if (!content) {
+        alert('Buat dokumen terlebih dahulu sebelum mencetak.');
+        return;
+    }
+
+    const original = document.body.innerHTML;
+    document.body.innerHTML = `<main class="generated-document">${content}</main>`;
+    window.print();
+    document.body.innerHTML = original;
+    window.location.reload();
 }
 
 function buildFallbackDocument(title, form, details) {
@@ -33,7 +201,9 @@ function buildFallbackDocument(title, form, details) {
 }
 
 async function generateWithRetry(prompt, apiKey, fallbackHTML) {
-    const maxAttempts = 3;
+    if (!apiKey?.trim()) return { html: fallbackHTML, usedFallback: true };
+
+    const maxAttempts = 2;
     let lastError;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -59,7 +229,7 @@ async function generateWithRetry(prompt, apiKey, fallbackHTML) {
         }
 
         if (attempt < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+            await new Promise(resolve => setTimeout(resolve, 700));
         }
     }
 

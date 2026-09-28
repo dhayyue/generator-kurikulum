@@ -26,8 +26,8 @@
         <!-- Kolom Kiri: Form Input Lengkap -->
         <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
             <div class="bg-amber-50 p-3 rounded-lg border border-amber-100">
-                <label class="block text-xs font-bold text-amber-900 mb-1">Gemini API Key</label>
-                <input type="password" x-model="apiKey" placeholder="Masukkan API Key..." class="w-full border border-amber-300 rounded p-2 text-xs bg-white outline-none">
+                <label class="block text-xs font-bold text-amber-900 mb-1">Gemini API Key (Opsional)</label>
+                <input type="password" x-model="apiKey" placeholder="Kosongkan untuk template cepat" class="w-full border border-amber-300 rounded p-2 text-xs bg-white outline-none">
             </div>
 
             <!-- 1. Informasi Umum -->
@@ -119,7 +119,10 @@
             <div>
                 <div class="flex justify-between items-center border-b pb-4 mb-6">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pratinjau Instrumen Asesmen</span>
-                    <button @click="printDoc" class="bg-slate-800 text-white px-3 py-1.5 rounded text-xs shadow hover:bg-slate-900 transition">Cetak / PDF</button>
+                    <div class="flex gap-2">
+                        <button @click="printDoc" class="bg-slate-800 text-white px-3 py-1.5 rounded text-xs shadow hover:bg-slate-900 transition">Cetak / PDF</button>
+                        <button @click="downloadWordDocument('Asesmen')" :disabled="!resultHTML" class="bg-amber-600 text-white px-3 py-1.5 rounded text-xs shadow hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Unduh Word</button>
+                    </div>
                 </div>
                 <div id="previewArea" class="text-xs leading-relaxed space-y-4">
                     <template x-if="!resultHTML">
@@ -163,10 +166,6 @@
                     this.$watch('apiKey', val => localStorage.setItem('gemini_api_key', val));
                 },
                 async generateAsesmen() {
-                    if (!this.apiKey) {
-                        alert('Silakan masukkan Gemini API Key terlebih dahulu di kolom atas!');
-                        return;
-                    }
                     this.loading = true;
                     this.resultHTML = '';
 
@@ -193,8 +192,8 @@
 
                     try {
                         const result = await generateWithRetry(prompt, this.apiKey, buildFallbackDocument('Instrumen Asesmen', this.form, 'Tambahkan kisi-kisi, soal, kunci jawaban, dan rubrik penilaian sesuai tujuan.'));
-                        this.resultHTML = result.html.replace(/```html/g, '').replace(/```/g, '');
-                        if (result.usedFallback) alert('Gemini sedang sibuk. Template cadangan Asesmen berhasil digunakan.');
+                        this.resultHTML = ensureSignatureBlock(result.html.replace(/```html/g, '').replace(/```/g, ''), this.form);
+                        if (result.usedFallback) alert(this.apiKey.trim() ? 'Gemini sedang sibuk. Template cadangan Asesmen berhasil digunakan.' : 'Template cepat Asesmen dibuat tanpa Gemini.');
                     } catch (e) {
                         console.error(e);
                         alert(`Gagal membuat asesmen: ${e.message}`);
@@ -203,12 +202,7 @@
                     }
                 },
                 printDoc() {
-                    const content = document.getElementById('previewArea').innerHTML;
-                    const original = document.body.innerHTML;
-                    document.body.innerHTML = content;
-                    window.print();
-                    document.body.innerHTML = original;
-                    window.location.reload();
+                    printDocument();
                 }
             }
         }

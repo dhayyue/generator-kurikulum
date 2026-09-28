@@ -26,8 +26,8 @@
         <!-- Kolom Kiri: Form Input Lengkap -->
         <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
             <div class="bg-cyan-50 p-3 rounded-lg border border-cyan-100">
-                <label class="block text-xs font-bold text-cyan-900 mb-1">Gemini API Key</label>
-                <input type="password" x-model="apiKey" placeholder="Masukkan API Key..." class="w-full border border-cyan-300 rounded p-2 text-xs bg-white outline-none">
+                <label class="block text-xs font-bold text-cyan-900 mb-1">Gemini API Key (Opsional)</label>
+                <input type="password" x-model="apiKey" placeholder="Kosongkan untuk template cepat" class="w-full border border-cyan-300 rounded p-2 text-xs bg-white outline-none">
             </div>
 
             <!-- 1. Informasi Umum -->
@@ -119,7 +119,10 @@
             <div>
                 <div class="flex justify-between items-center border-b pb-4 mb-6">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pratinjau Dokumen LKPD</span>
-                    <button @click="printDoc" class="bg-slate-800 text-white px-3 py-1.5 rounded text-xs shadow hover:bg-slate-900 transition">Cetak / PDF</button>
+                    <div class="flex gap-2">
+                        <button @click="printDoc" class="bg-slate-800 text-white px-3 py-1.5 rounded text-xs shadow hover:bg-slate-900 transition">Cetak / PDF</button>
+                        <button @click="downloadWordDocument('LKPD')" :disabled="!resultHTML" class="bg-cyan-600 text-white px-3 py-1.5 rounded text-xs shadow hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Unduh Word</button>
+                    </div>
                 </div>
                 <div id="previewArea" class="text-xs leading-relaxed space-y-4">
                     <template x-if="!resultHTML">
@@ -163,10 +166,6 @@
                     this.$watch('apiKey', val => localStorage.setItem('gemini_api_key', val));
                 },
                 async generateLkpd() {
-                    if (!this.apiKey) {
-                        alert('Silakan masukkan Gemini API Key terlebih dahulu di kolom atas!');
-                        return;
-                    }
                     this.loading = true;
                     this.resultHTML = '';
 
@@ -195,8 +194,8 @@
 
                     try {
                         const result = await generateWithRetry(prompt, this.apiKey, buildFallbackDocument('Lembar Kerja Peserta Didik (LKPD)', this.form, 'Tambahkan alat, bahan, pertanyaan, dan lembar jawaban sesuai kegiatan.'));
-                        this.resultHTML = result.html.replace(/```html/g, '').replace(/```/g, '');
-                        if (result.usedFallback) alert('Gemini sedang sibuk. Template cadangan LKPD berhasil digunakan.');
+                        this.resultHTML = ensureSignatureBlock(result.html.replace(/```html/g, '').replace(/```/g, ''), this.form);
+                        if (result.usedFallback) alert(this.apiKey.trim() ? 'Gemini sedang sibuk. Template cadangan LKPD berhasil digunakan.' : 'Template cepat LKPD dibuat tanpa Gemini.');
                     } catch (e) {
                         console.error(e);
                         alert(`Gagal membuat LKPD: ${e.message}`);
@@ -205,12 +204,7 @@
                     }
                 },
                 printDoc() {
-                    const content = document.getElementById('previewArea').innerHTML;
-                    const original = document.body.innerHTML;
-                    document.body.innerHTML = content;
-                    window.print();
-                    document.body.innerHTML = original;
-                    window.location.reload();
+                    printDocument();
                 }
             }
         }
